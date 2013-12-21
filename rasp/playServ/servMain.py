@@ -14,12 +14,15 @@ from twisted.internet import reactor, task
 from twisted.application import service
 
 
+_stop_ = 0
+_play_ = 1
 class player():
 	def __init__(self):
 		self._playList = []
 		self._process = None
 		self._random = False
-		self._pos = 0
+		self._pos = -1
+		self._state = _play_
 
 	def addPlayList(self, playList, isRandom):
 		self._playList = playList
@@ -28,8 +31,11 @@ class player():
 			random.shuffle(self._playList)
 		if len(self._playList) > 0:
 			self._pos = 0
+			self._state = _play_
 
 	def play(self):
+		if self._state == _stop_:
+			return
 		# running
 		if self._process != None:
 			if self._process.poll() == None:
@@ -43,8 +49,9 @@ class player():
 				self._pos = 0
 				if self._random:
 					random.shuffle(self._playList)
-			print self._playList[self._pos], self._pos, self._playList
-			self._process = popen(['../pifm', self._playList[self._pos], '103.3', '44100'])
+			music = self._playList[self._pos]
+			print self._pos, music['_id'], music['_file']
+			self._process = popen(['../pifm', music['_file'], '102.3', '44100'])
 			self._pos += 1
 
 	def stopPlay(self):
@@ -52,6 +59,14 @@ class player():
 			self._process.poll() == None and os.kill(self._process.pid, 15)
 			self._process.wait()
 			self._process = None
+		self._state = _stop_
+
+	def playNext(self):
+		self.stopPlay()
+		self._state = _play_
+
+	def getPlayId(self):
+		return None if self._process == None or self._pos == -1 else self._playList[self._pos-1]['_id']
 
 stopTimer = 0
 def schedule(play):
@@ -72,14 +87,17 @@ class playerCtl(LineReceiver):
 		self._shutdown = None
 
 	def connectionMade(self):
-		self.sendLine('connection succ.')
 		out = {}
 		out['ret'] = 0
+		out['type'] = 'conn'
+		out['msg'] = 'connection succ.'
 		out['shutdown'] = self._shutdown
 		self.sendLine(json.dumps(out))
 
 	def lineReceived(self, line):
 		try:
+			log.msg(line)
+			log.msg(str(time.time()))
 			self.parseCmd(json.loads(line))
 		except Exception, err:
 			out = {'ret': -1, 'msg': err.message + line}
@@ -87,21 +105,30 @@ class playerCtl(LineReceiver):
 
 	def parseCmd(self, data):
 		cmd = data['cmd'].lower()
+		print cmd
 		if cmd == 'stop':
 			play.stopPlay()
 			self.transport.loseConnection()
 			reactor.stop()
 		elif cmd == 'play':
 			self.addPlayList(data)
-		else:
-			out = {'ret': -1, 'msg': 'invalid command, ' + str(cmd)}
+			# set shutdown time
+			global stopTimer
+			stopTimer = (time.time() + int(data['stoptimer'])) if data.has_key('stoptimer') else 0
+			out = {'ret': 0}
 			self.sendLine(json.dumps(out))
 			return
+		elif cmd == 'playnext':
+			play.playNext()
+			out = {'msg': 'playnext'}
+		elif cmd == 'stopplay':
+			play.stopPlay()
+			out = {'msg': 'stopplay'}
+		elif cmd == 'queryplayid':
+			out = {'ret': 0, 'msg': play.getPlayId()}
+		else:
+			out = {'ret': -1, 'msg': 'invalid command, ' + str(cmd)}
 
-		# set shutdown time
-		global stopTimer
-		stopTimer = (time.time() + int(data['stoptimer'])) if data.has_key('stoptimer') else 0
-		out = {'ret': 0}
 		self.sendLine(json.dumps(out))
 
 	def addPlayList(self, data):
@@ -109,11 +136,14 @@ class playerCtl(LineReceiver):
 		if len(playList) == 0:
 			playList = []
 		# random
-		isRandom = True if data.has_key('playtype') else False
+		isRandom = False if data.has_key('sort') else True
 		play.stopPlay()
-		#play.addPlayList(playList, isRandom)
+		play.addPlayList(playList, isRandom)
 		# test
-		play.addPlayList(['../data/01.wav', '../data/waipopenghuwan.wav'], True)
+		#play.addPlayList([{'_id':0, '_file':'../data/01.wav'},
+		#	{'_id':1, '_file':'../data/waipopenghuwan.wav'},
+		#	{'_id':2, '_file':'../data/qiyue.wav'}], True)
+
 
 class playerFactory(Factory):
 	def buildProtocol(self, addr):
