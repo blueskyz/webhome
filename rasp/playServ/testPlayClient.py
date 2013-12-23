@@ -27,11 +27,13 @@ class clientPlay():
 
 def main():
     cli = clientPlay('192.168.2.18', 4001)
+	musics = json.load(file('./01.json'))
+	for music in musics:
+		music['_id'] = music['path']
+		music['_file'] = '/data/resource/music/' + music['path']
     cmdPlay = {}
     cmdPlay['cmd'] = 'play'
-    cmdPlay['playlist'] = [{'_id':0, '_file':'../data/01.wav'},
-            {'_id':1, '_file':'../data/waipopenghuwan.wav'},
-            {'_id':2, '_file':'../data/qiyue.wav'}]
+    cmdPlay['playlist'] = musics
     result = cli.sendLineCmd(json.dumps(cmdPlay))
     print 'receive: ', time.time(), result
     lines = result.split('\r\n')
@@ -41,10 +43,6 @@ def main():
     count = 0
     while True:
         time.sleep(8)
-        #if count % 2 == 0:
-        #    result = cli.sendLineCmd('{"cmd":"stopplay", "time":%d}' % (time.time()))
-        #else:
-        #    result = cli.sendLineCmd('{"cmd":"playnext", "time":%d}' % (time.time()))
         result = cli.sendLineCmd('{"cmd":"playnext", "time":%d}' % (time.time()))
         print result
         time.sleep(20)
