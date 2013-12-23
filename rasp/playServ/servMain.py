@@ -13,6 +13,7 @@ from twisted.protocols.basic import LineReceiver
 from twisted.internet import reactor, task
 from twisted.application import service
 
+LineReceiver.MAX_LENGTH = 8*1024*1024
 
 _stop_ = 0
 _play_ = 1
@@ -51,7 +52,8 @@ class player():
 					random.shuffle(self._playList)
 			music = self._playList[self._pos]
 			print self._pos, music['_id'], music['_file']
-			self._process = popen(['../pifm', music['_file'], '102.3', '44100'])
+			#self._process = popen(['../pifm', music['_file'], '102.3', '44100'])
+			self._process = popen(['mpg321', '-q', '-g', '20', music['_file']])
 			self._pos += 1
 
 	def stopPlay(self):
@@ -96,6 +98,7 @@ class playerCtl(LineReceiver):
 
 	def lineReceived(self, line):
 		try:
+			print 'line recv: ', len(line)
 			log.msg(line)
 			log.msg(str(time.time()))
 			self.parseCmd(json.loads(line))
@@ -111,6 +114,7 @@ class playerCtl(LineReceiver):
 			self.transport.loseConnection()
 			reactor.stop()
 		elif cmd == 'play':
+			print 'play cmd'
 			self.addPlayList(data)
 			# set shutdown time
 			global stopTimer
@@ -126,6 +130,7 @@ class playerCtl(LineReceiver):
 			out = {'msg': 'stopplay'}
 		elif cmd == 'queryplayid':
 			out = {'ret': 0, 'msg': play.getPlayId()}
+			print 'ret queryplayid .........', json.dumps(out)
 		else:
 			out = {'ret': -1, 'msg': 'invalid command, ' + str(cmd)}
 
