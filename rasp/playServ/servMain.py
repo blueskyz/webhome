@@ -53,7 +53,8 @@ class player():
 			music = self._playList[self._pos]
 			print self._pos, music['_id'], music['_file']
 			#self._process = popen(['../pifm', music['_file'], '102.3', '44100'])
-			self._process = popen(['mpg321', '-q', '-g', '20', music['_file']])
+			os.system('amixer cset numid=3 1')
+			self._process = popen(['mpg321', '-q', '-g', '50', music['_file']])
 			self._pos += 1
 
 	def stopPlay(self):

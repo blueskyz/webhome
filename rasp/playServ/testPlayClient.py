@@ -42,7 +42,7 @@ class clientPlay():
 
 def main():
 	cli = clientPlay('192.168.2.18', 4001)
-	musics = json.load(file('./02.json'))
+	musics = json.load(file('./01.json'))
 	for music in musics:
 		music['_id'] = music['path']
 		music['_file'] = '/data/resource/music/' + music['path']
