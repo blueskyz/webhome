@@ -24,11 +24,13 @@ class player():
 		self._random = False
 		self._pos = -1
 		self._state = _play_
+		self._sound = 50
 
-	def addPlayList(self, playList, isRandom):
+	def addPlayList(self, playList, isRandom, sound = 50):
 		self._playList = playList
-		if random:
-			self._random = isRandom
+		self._random = isRandom
+		self._sound = sound
+		if self._random:
 			random.shuffle(self._playList)
 		if len(self._playList) > 0:
 			self._pos = 0
@@ -54,7 +56,7 @@ class player():
 			print self._pos, music['_id'], music['_file']
 			#self._process = popen(['../pifm', music['_file'], '102.3', '44100'])
 			os.system('amixer cset numid=3 1')
-			self._process = popen(['mpg321', '-q', '-g', '50', music['_file']])
+			self._process = popen(['mpg321', '-q', '-g', str(self._sound), music['_file']])
 			self._pos += 1
 
 	def stopPlay(self):
@@ -70,6 +72,9 @@ class player():
 
 	def getPlayId(self):
 		return None if self._process == None or self._pos == -1 else self._playList[self._pos-1]['_id']
+
+	def getPlaySound(self):
+		return self._sound
 
 stopTimer = 0
 def schedule(play):
@@ -130,7 +135,7 @@ class playerCtl(LineReceiver):
 			play.stopPlay()
 			out = {'msg': 'stopplay'}
 		elif cmd == 'queryplayid':
-			out = {'ret': 0, 'msg': play.getPlayId()}
+			out = {'ret': 0, 'msg': play.getPlayId(), 'sound': play.getPlaySound()}
 			print 'ret queryplayid .........', json.dumps(out)
 		else:
 			out = {'ret': -1, 'msg': 'invalid command, ' + str(cmd)}
@@ -143,8 +148,12 @@ class playerCtl(LineReceiver):
 			playList = []
 		# random
 		isRandom = False if data.has_key('sort') else True
+		# sound
+		sound = data['sound'] if data.has_key('sound') else 50
+		print 'sort: ', isRandom
+		print 'sound: ', sound
 		play.stopPlay()
-		play.addPlayList(playList, isRandom)
+		play.addPlayList(playList, isRandom, sound)
 		# test
 		#play.addPlayList([{'_id':0, '_file':'../data/01.wav'},
 		#	{'_id':1, '_file':'../data/waipopenghuwan.wav'},

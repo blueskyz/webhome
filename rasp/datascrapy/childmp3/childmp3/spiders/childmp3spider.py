@@ -14,14 +14,15 @@ class childmp3Spider(BaseSpider):
     name = 'childmp3'
     allowed_domains = ['9ku.com']
     start_urls = ['http://www.9ku.com/erge/ertonggequ.htm',
-            'http://www.9ku.com/erge/gushi.htm']
+            #'http://www.9ku.com/erge/gushi.htm'
+			]
     mp3_url = 'http://mp3.9ku.com/file2/%d/%s.mp3'
 
     def parse(self, response):
         hxs = selector(response)
         typename = hxs.xpath('//li/a[@class="active"]/text()').extract()
         self.log(typename[0].encode('gbk'))
-        urls = hxs.css('#f100 li a[class="songName"]')
+        urls = hxs.css('.songList ol li a[class="songName"]')
         requestItem = []
         for url in urls:
             href = url.xpath('@href').extract()[0]
