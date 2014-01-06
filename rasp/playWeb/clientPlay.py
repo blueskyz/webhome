@@ -15,7 +15,7 @@ class clientPlay():
 			s = socket.create_connection((self._ip, self._port),
 					timeout=5)
 			s.settimeout(5)
-			print 'send data: ', data
+			#print 'send data: ', data
 			s.sendall(data + '\r\n')
 			result = s.recv(1024)
 			count = 0
@@ -31,7 +31,7 @@ class clientPlay():
 					pos = newpos + 2
 				else:
 					result += s.recv(1024)
-			print 'result: ', ret, pos, len(result), result
+			#print 'result: ', ret, pos, len(result), result
 			s.close()
 			return ret
 		except Exception, err:

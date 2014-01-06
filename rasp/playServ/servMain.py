@@ -29,7 +29,7 @@ class player():
 	def addPlayList(self, playList, isRandom, sound = 50):
 		self._playList = playList
 		self._random = isRandom
-		self._sound = sound
+		self._sound = int(sound)
 		if self._random:
 			random.shuffle(self._playList)
 		if len(self._playList) > 0:
@@ -73,6 +73,9 @@ class player():
 	def getPlayId(self):
 		return None if self._process == None or self._pos == -1 else self._playList[self._pos-1]['_id']
 
+	def setPlaySound(self, sound):
+		self._sound = int(sound)
+
 	def getPlaySound(self):
 		return self._sound
 
@@ -115,7 +118,7 @@ class playerCtl(LineReceiver):
 	def parseCmd(self, data):
 		cmd = data['cmd'].lower()
 		print cmd
-		if cmd == 'stop':
+		if cmd == 'shutdown':
 			play.stopPlay()
 			self.transport.loseConnection()
 			reactor.stop()
@@ -124,10 +127,13 @@ class playerCtl(LineReceiver):
 			self.addPlayList(data)
 			# set shutdown time
 			global stopTimer
-			stopTimer = (time.time() + int(data['stoptimer'])) if data.has_key('stoptimer') else 0
+			stopTimer = (time.time() + int(data['stoptimer']) * 60) if data.has_key('stoptimer') else 0
 			out = {'ret': 0}
 			self.sendLine(json.dumps(out))
 			return
+		elif cmd == 'sound':
+			play.setPlaySound(data['sound'] if data.has_key('sound') else 50)
+			out = {'msg': 'sound'}
 		elif cmd == 'playnext':
 			play.playNext()
 			out = {'msg': 'playnext'}
@@ -135,7 +141,7 @@ class playerCtl(LineReceiver):
 			play.stopPlay()
 			out = {'msg': 'stopplay'}
 		elif cmd == 'queryplayid':
-			out = {'ret': 0, 'msg': play.getPlayId(), 'sound': play.getPlaySound()}
+			out = {'ret': 0, 'msg': play.getPlayId(), 'sound': play.getPlaySound(), 'lefthalttime': (stopTimer-time.time())/60}
 			print 'ret queryplayid .........', json.dumps(out)
 		else:
 			out = {'ret': -1, 'msg': 'invalid command, ' + str(cmd)}
