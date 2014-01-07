@@ -1,0 +1,80 @@
+#!/bin/sh
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+. /lib/lsb/init-functions
+
+DAEMON=/usr/bin/python
+PIDFILE=/var/run/playWebd.pid
+PLAYDIR=/home/xbian/tools/pifm/playWeb
+PLAYSERV=$PLAYDIR/main.py
+LOG=/var/log/playWebd.log
+
+test -x $DAEMON || exit 5
+
+LOCKFILE=/var/lock/playWebd.lock
+
+lock() {
+	if [ -x /usr/bin/lockfile-create ]; then
+		lockfile-create $LOCKFILE
+		lockfile-touch $LOCKFILE &
+		LOCKTOUCHPID="$!"
+	fi
+}
+
+unlock() {
+	if [ -x /usr/bin/lockfile-create ] ; then
+		kill $LOCKTOUCHPID
+		lockfile-remove $LOCKFILE
+	fi
+}
+
+RUNASUSER=xbian
+UGID=$(getent passwd $RUNASUSER | cut -f 3 -d:) || true
+if test "$(uname -s)" = "Linux"; then
+        PLAYD_OPTS="$PLAYSERV"
+fi
+
+case $1 in
+	start)
+		log_daemon_msg "Starting Play web server" "playWebd"
+		if [ -z "$UGID" ]; then
+			log_failure_msg "user \"$RUNASUSER\" does not exist"
+			exit 1
+		fi
+		lock
+		#echo ""
+		#echo $PLAYD_OPTS
+  		start-stop-daemon --start -b --quiet --oknodo -c $UGID -m --pidfile $PIDFILE -d $PLAYDIR --startas $DAEMON -- $PLAYD_OPTS
+		status=$?
+		unlock
+		log_end_msg $status
+  		;;
+	stop)
+		log_daemon_msg "Stopping Play web server" "playServd"
+  		start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE
+		kill `pgrep -f "playWeb"`
+		log_end_msg $?
+		rm -f $PIDFILE
+  		;;
+	restart|force-reload)
+		$0 stop && sleep 2 && $0 start
+  		;;
+	try-restart)
+		if $0 status >/dev/null; then
+			$0 restart
+		else
+			exit 0
+		fi
+		;;
+	reload)
+		exit 3
+		;;
+	status)
+		status_of_proc $DAEMON "Play web server"
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart|try-restart|force-reload|status}"
+		exit 2
+		;;
+esac

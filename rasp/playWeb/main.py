@@ -104,7 +104,7 @@ def run():
 		static_path=local_static_path, debug=False)
 	http_server = httpserver.HTTPServer(application)
 	http_server.bind(options.port)
-	http_server.start(4)
+	http_server.start(2)
 	ioloop.IOLoop.instance().start()
 
 if __name__ == '__main__':
