@@ -49,6 +49,7 @@ def main():
 	print 'len: ', len(musics)
 	cmdPlay = {}
 	cmdPlay['cmd'] = 'play'
+	cmdPlay['tag'] = 'playlist1'
 	cmdPlay['playlist'] = musics
 	#cmdPlay['sort'] = '1'
 	cmdPlay['sound'] = 20

@@ -43,8 +43,8 @@ case $1 in
 			exit 1
 		fi
 		lock
-		echo ""
-		echo $PLAYD_OPTS
+		#echo ""
+		#echo $PLAYD_OPTS
   		start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --startas $DAEMON -- $PLAYD_OPTS
 		status=$?
 		unlock
