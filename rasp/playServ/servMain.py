@@ -63,11 +63,16 @@ class player():
 			self._pos += 1
 
 	def stopPlay(self):
-		if self._process is not None:
-			self._process.poll() == None and os.kill(self._process.pid, 15)
-			self._process.wait()
+		try:
+			if self._process is not None:
+				self._process.poll() == None and self._process.terminate()
+				self._process.wait()
+				self._process = None
+			self._state = _stop_
+		except Exception, err:
 			self._process = None
-		self._state = _stop_
+			self._state = _stop_
+			print err
 
 	def playNext(self):
 		self.stopPlay()
