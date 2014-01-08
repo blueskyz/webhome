@@ -97,7 +97,7 @@ class player():
 
 	def saveCurrentCfg(self):
 		try:
-			with open('/tmp/servPlay.json', 'w+') as f:
+			with open('./servPlay.last.json', 'w+') as f:
 				serialize = {}
 				serialize['playTag'] = self._playTag
 				serialize['playList'] = self._playList
@@ -109,7 +109,7 @@ class player():
 
 	def loadLastCfg(self):
 		try:
-			with open('/tmp/servPlay.json', 'r+') as f:
+			with open('./servPlay.last.json', 'r+') as f:
 				serialize = json.load(f)
 				self._playTag = serialize['playTag']
 				self._playList = serialize['playList']

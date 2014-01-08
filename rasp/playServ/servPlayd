@@ -32,7 +32,7 @@ unlock() {
 RUNASUSER=root
 UGID=$(getent passwd $RUNASUSER | cut -f 3 -d:) || true
 if test "$(uname -s)" = "Linux"; then
-        PLAYD_OPTS="$PLAYD_OPTS -y $PLAYSERV -u $UGID -d $PLAYDIR --pidfile=$PIDFILE --logfile=$LOG"
+        PLAYD_OPTS="$PLAYD_OPTS -y $PLAYSERV -u $UGID --pidfile=$PIDFILE --logfile=$LOG"
 fi
 
 case $1 in
@@ -45,7 +45,7 @@ case $1 in
 		lock
 		#echo ""
 		#echo $PLAYD_OPTS
-  		start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --startas $DAEMON -- $PLAYD_OPTS
+  		start-stop-daemon --start --quiet --oknodo -d $PLAYDIR --pidfile $PIDFILE --startas $DAEMON -- $PLAYD_OPTS
 		status=$?
 		unlock
 		log_end_msg $status
