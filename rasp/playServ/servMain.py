@@ -56,7 +56,7 @@ class player():
 				if self._random:
 					random.shuffle(self._playList)
 			music = self._playList[self._pos]
-			print self._pos, music['_id'], music['_file']
+			print 'play music: ', os.getpid(), self._pos, music['_id'], music['_file']
 			#self._process = popen(['../pifm', music['_file'], '102.3', '44100'])
 			os.system('amixer cset numid=3 1')
 			self._process = popen(['mpg321', '-q', '-g', str(self._sound), music['_file']])
@@ -123,6 +123,11 @@ class player():
 				self._process = None
 				self._pos = -1
 				self._state = _play_
+				if self._random:
+					random.shuffle(self._playList)
+				if len(self._playList) > 0:
+					self._pos = 0
+					self._state = _play_
 		except Exception, err:
 			print err.message
 
@@ -136,12 +141,9 @@ def schedule(play):
 	# control play
 	play.play()
 
-play = player()
-task = task.LoopingCall(schedule, play)
-task.start(3.0)
-
 class playerCtl(LineReceiver):
-	def __init__(self):
+	def __init__(self, play):
+		self._play = play
 		self._shutdown = None
 
 	def connectionMade(self):
@@ -166,7 +168,7 @@ class playerCtl(LineReceiver):
 		cmd = data['cmd'].lower()
 		print cmd
 		if cmd == 'shutdown':
-			play.stopPlay()
+			self._play.stopPlay()
 			self.transport.loseConnection()
 			reactor.stop()
 		elif cmd == 'play':
@@ -179,32 +181,32 @@ class playerCtl(LineReceiver):
 			self.sendLine(json.dumps(out))
 			return
 		elif cmd == 'sound':
-			play.setPlaySound(data['sound'] if data.has_key('sound') else 50)
+			self._play.setPlaySound(data['sound'] if data.has_key('sound') else 50)
 			out = {'msg': 'sound'}
 		elif cmd == 'playnext':
-			play.playNext()
+			self._play.playNext()
 			out = {'msg': 'playnext'}
 		elif cmd == 'stopplay':
-			play.stopPlay()
+			self._play.stopPlay()
 			out = {'msg': 'stopplay'}
 		elif cmd == 'queryplayid':
 			out = {'ret': 0, 
-					'msg': play.getPlayId(), 
-					'tag': play.getPlayTag(),
-					'sound': play.getPlaySound(), 
-					'sort': play.getSort(),
-					'state': play.getPlayStatus(),
+					'msg': self._play.getPlayId(), 
+					'tag': self._play.getPlayTag(),
+					'sound': self._play.getPlaySound(), 
+					'sort': self._play.getSort(),
+					'state': self._play.getPlayStatus(),
 					'lefthalttime': (stopTimer-time.time())/60}
 			print 'ret queryplayid .........', json.dumps(out)
 		elif cmd == 'queryplaylist':
 			out = {'ret': 0, 
-					'msg': play.getPlayId(), 
-					'tag': play.getPlayTag(),
-					'sound': play.getPlaySound(), 
-					'sort': play.getSort(),
-					'state': play.getPlayStatus(),
+					'msg': self._play.getPlayId(), 
+					'tag': self._play.getPlayTag(),
+					'sound': self._play.getPlaySound(), 
+					'sort': self._play.getSort(),
+					'state': self._play.getPlayStatus(),
 					'lefthalttime': (stopTimer-time.time())/60,
-					'playlist': play.getPlaylist()}
+					'playlist': self._play.getPlaylist()}
 		else:
 			out = {'ret': -1, 'msg': 'invalid command, ' + str(cmd)}
 
@@ -222,24 +224,30 @@ class playerCtl(LineReceiver):
 		sound = data['sound'] if data.has_key('sound') else 50
 		print 'sort: ', isRandom
 		print 'sound: ', sound
-		play.stopPlay()
-		play.addPlayList(playTag, playList, isRandom, sound)
+		self._play.stopPlay()
+		self._play.addPlayList(playTag, playList, isRandom, sound)
 		# test
-		#play.addPlayList([{'_id':0, '_file':'../data/01.wav'},
+		#self._play.addPlayList([{'_id':0, '_file':'../data/01.wav'},
 		#	{'_id':1, '_file':'../data/waipopenghuwan.wav'},
 		#	{'_id':2, '_file':'../data/qiyue.wav'}], True)
 
 
 class playerFactory(Factory):
+	def __init__(self, play):
+		self._play = play
+
 	def buildProtocol(self, addr):
-		return playerCtl()
+		return playerCtl(self._play)
 
 class playerServ(service.Service):
 	def __init__(self):
 		pass
 
 	def startService(self):
-		self._serv = reactor.listenTCP(4001, playerFactory())
+		self._play = player()
+		self._task = task.LoopingCall(schedule, self._play)
+		self._task.start(3.0)
+		self._serv = reactor.listenTCP(4001, playerFactory(self._play))
 
 	def stopService(self):
 		return self._serv.stopListening()
