@@ -30,7 +30,7 @@
 		<script src="/static/js/bootstrap.min.js"></script>
 	</head>
 
-	<body>
+	<body id="top">
 		<nav class="navbar navbar-fixed-top navbar-inverse" role="navigation">
 		<div class="container">
 		<!-- Brand and toggle get grouped for better mobile display -->
@@ -54,6 +54,12 @@
 				<li><a href="{{path['url']}}">{{path['name']}}</a></li>
 				{% end %}
 				{% end %}
+				<li>
+				<button tag="{{info['url']}}" type="button" class="playmusic btn btn-danger">播放</button>
+				</li>
+				<li>
+				<button id="backtop" id="backtop" class="btn btn-danger">回顶端</button>
+				</li>
 			</ul>
 		</div>
 		<!-- /.navbar-collapse -->
@@ -67,7 +73,7 @@
 					<label class="text-primary">数目: {{len(musicList)}}</label>
 				</div>
 				<div class="checkbox">
-					<button tag="{{info['url']}}" id="playmusic" type="button" class="btn btn-danger">播放</button>
+					<button tag="{{info['url']}}" type="button" class="playmusic btn btn-danger">播放</button>
 					<button tag="{{info['url']}}" id="stopplaytaggle" state="0" type="button" class="btn btn-danger">停止</button>
 				</div>
 				</div>
@@ -144,6 +150,10 @@
 			});
 		})
 
+		$("#backtop").bind("click", function(event){
+			window.location.href = "#top";
+		});
+
 		$("#allchecked").bind("click", function(event){
 			if ($(this).prop("checked")){
 				$(".songitem").prop("checked", "checked");
@@ -168,7 +178,7 @@
 		})
 
 		// play click
-		$("#playmusic").bind("click", function(event){
+		$(".playmusic").bind("click", function(event){
 			var songlist = $(".songitem:checked");
 			var playlist = new Array();
 			songlist.each(function(index){
@@ -216,7 +226,7 @@
 			$.post("/rest/play", JSON.stringify(data), function(data){
 				var result = JSON.parse(data);
 				// check result
-				if (0 != result["ret"] || result["tag"] != $("#playmusic").attr('tag')){
+				if (0 != result["ret"] || result["tag"] != $(".playmusic").attr('tag')){
 					return;
 				}
 				// show sound level
